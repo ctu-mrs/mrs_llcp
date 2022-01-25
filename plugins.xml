@@ -1,0 +1,5 @@
+<library path="lib/libLlcp">
+  <class name="llcp/Llcp" type="llcp::Llcp" base_class_type="nodelet::Nodelet">
+    <description>Llcp nodelet</description>
+  </class>
+</library>
