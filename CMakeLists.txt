@@ -4,6 +4,8 @@ project(mrs_llcp)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+add_definitions(-DLLCP_LITTLE_ENDIAN)
+
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   cmake_modules
@@ -13,7 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES Llcp
+  LIBRARIES LlcpRos
   CATKIN_DEPENDS roscpp
   )
 
@@ -22,7 +24,12 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   )
 
-add_library(Llcp src/llcp.cpp src/serial_port.cpp)
-target_link_libraries(Llcp
+add_library(LlcpRos src/llcp_ros.cpp src/serial_port.cpp)
+target_link_libraries(LlcpRos
+  llcp
   ${catkin_LIBRARIES}
   )
+
+add_library(llcp
+  src/llcp.c
+)

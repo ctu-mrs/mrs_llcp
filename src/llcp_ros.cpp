@@ -6,17 +6,31 @@
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
 
-namespace llcp
+#include <llcp.h>
+#include <thread>
+
+#define SERIAL_BUFFER_SIZE 512
+
+namespace llcp_ros
 {
 
-/* class Llcp //{ */
+/* class LlcpRos //{ */
 
-class Llcp : public nodelet::Nodelet {
+class LlcpRos : public nodelet::Nodelet {
 
 public:
   virtual void onInit();
 
 private:
+  LLCP_Receiver_t llcp_receiver;
+
+  serial_port::SerialPort serial_port_;
+
+  bool openSerialPort(std::string portname, int baudrate);
+  void serialThread(void);
+
+  std::thread serial_thread_;
+
   /* enum serial_receiver_state */
   /* { */
   /*   WAITING_FOR_MESSSAGE, */
@@ -41,7 +55,7 @@ private:
   /* bool callbackNetgunSafe(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res); */
   /* bool callbackNetgunArm(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res); */
   /* bool callbackNetgunFire(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res); */
-  /* void callbackSendMessage(const mrs_msgs::LlcpConstPtr &msg); */
+  /* void callbackSendMessage(const mrs_msgs::LlcpRosConstPtr &msg); */
   /* void callbackSendRawMessage(const mrs_msgs::SerialRawConstPtr &msg); */
   /* void callbackMagnet(const std_msgs::EmptyConstPtr &msg); */
 
@@ -49,18 +63,18 @@ private:
   /* bool callbackSendIntRaw([[maybe_unused]] mrs_msgs::SetInt::Request &req, mrs_msgs::SetInt::Response &res); */
 
 
-  /* uint8_t connectToSensor(void); */
   /* void    processMessage(uint8_t payload_size, uint8_t *input_buffer, uint8_t checksum, uint8_t checksum_rec, bool checksum_correct); */
-
 
   ros::NodeHandle nh_;
 
+  bool running_     = true;
+  bool initialized_ = false;
   /* ros::Publisher range_publisher_A_; */
   /* ros::Publisher range_publisher_B_; */
-  /* ros::Publisher llcp_publisher_; */
+  /* ros::Publisher llcp_ros_publisher_; */
 
   /* ros::Subscriber raw_message_subscriber; */
-  /* ros::Subscriber llcp_subscriber; */
+  /* ros::Subscriber llcp_ros_subscriber; */
   /* ros::Subscriber magnet_subscriber; */
 
   /* serial_port::SerialPort serial_port_; */
@@ -75,16 +89,23 @@ private:
 
 /* onInit() //{ */
 
-void Llcp::onInit() {
+void LlcpRos::onInit() {
 
   // Get paramters
   nh_ = ros::NodeHandle("~");
 
   ros::Time::waitForValid();
 
-  ROS_INFO("[Llcp]: node initialized");
-  ROS_INFO("[Llcp]: pes steka panove");
+  ROS_INFO("[LlcpRos]: node initialized");
+  ROS_INFO("[LlcpRos]: pes steka panove");
 
+  bool connected = openSerialPort("/dev/arduino", 115200);
+
+  llcp_initialize(&llcp_receiver);
+
+  ROS_INFO("[LlcpRos]: llcp receiver initialized");
+
+  serial_thread_ = std::thread(&LlcpRos::serialThread, this);
   /* nh_.param("uav_name", uav_name_, std::string("uav")); */
   /* nh_.param("portname", portname_, std::string("/dev/ttyUSB0")); */
   /* nh_.param("baudrate", baudrate_, 115200); */
@@ -95,8 +116,8 @@ void Llcp::onInit() {
   /* nh_.param("serial_rate", serial_rate_, 5000); */
   /* nh_.param("serial_buffer_size", serial_buffer_size_, 1024); */
 
-  /* ser_send_int     = nh_.advertiseService("send_int", &Llcp::callbackSendInt, this); */
-  /* ser_send_int_raw = nh_.advertiseService("send_int_raw", &Llcp::callbackSendIntRaw, this); */
+  /* ser_send_int     = nh_.advertiseService("send_int", &LlcpRos::callbackSendInt, this); */
+  /* ser_send_int_raw = nh_.advertiseService("send_int_raw", &LlcpRos::callbackSendIntRaw, this); */
 
   /* // Publishers */
   /* std::string postfix_A = swap_garmins ? "_up" : ""; */
@@ -106,11 +127,11 @@ void Llcp::onInit() {
   /* garmin_A_frame_       = uav_name_ + "/garmin" + postfix_A; */
   /* garmin_B_frame_       = uav_name_ + "/garmin" + postfix_B; */
 
-  /* llcp_publisher_ = nh_.advertise<mrs_msgs::Llcp>("baca_protocol_out", 1); */
+  /* llcp_ros_publisher_ = nh_.advertise<mrs_msgs::LlcpRos>("baca_protocol_out", 1); */
 
-  /* llcp_subscriber = nh_.subscribe("baca_protocol_in", 10, &Llcp::callbackSendMessage, this, ros::TransportHints().tcpNoDelay()); */
+  /* llcp_ros_subscriber = nh_.subscribe("baca_protocol_in", 10, &LlcpRos::callbackSendMessage, this, ros::TransportHints().tcpNoDelay()); */
 
-  /* raw_message_subscriber = nh_.subscribe("raw_in", 10, &Llcp::callbackSendRawMessage, this, ros::TransportHints().tcpNoDelay()); */
+  /* raw_message_subscriber = nh_.subscribe("raw_in", 10, &LlcpRos::callbackSendRawMessage, this, ros::TransportHints().tcpNoDelay()); */
 
   /* // Output loaded parameters to console for double checking */
   /* ROS_INFO_THROTTLE(1.0, "[%s] is up and running with the following parameters:", ros::this_node::getName().c_str()); */
@@ -118,16 +139,83 @@ void Llcp::onInit() {
   /* ROS_INFO_THROTTLE(1.0, "[%s] baudrate: %i", ros::this_node::getName().c_str(), baudrate_); */
   /* ROS_INFO_STREAM_THROTTLE(1.0, "[" << ros::this_node::getName().c_str() << "] publishing messages with wrong checksum: " << publish_bad_checksum); */
 
-  /* connectToSensor(); */
 
-  /* serial_timer_     = nh_.createTimer(ros::Rate(serial_rate_), &Llcp::callbackSerialTimer, this); */
-  /* fake_timer_       = nh_.createTimer(ros::Rate(fake_garmin_rate_), &Llcp::callbackFakeTimer, this); */
-  /* maintainer_timer_ = nh_.createTimer(ros::Rate(1), &Llcp::callbackMaintainerTimer, this); */
+  /* serial_timer_     = nh_.createTimer(ros::Rate(serial_rate_), &LlcpRos::callbackSerialTimer, this); */
+  /* fake_timer_       = nh_.createTimer(ros::Rate(fake_garmin_rate_), &LlcpRos::callbackFakeTimer, this); */
+  /* maintainer_timer_ = nh_.createTimer(ros::Rate(1), &LlcpRos::callbackMaintainerTimer, this); */
 
   /* is_initialized_ = true; */
+  initialized_ = true;
 }
 //}
 
-} 
+/*  openSerialPort()//{ */
 
-PLUGINLIB_EXPORT_CLASS(llcp::Llcp, nodelet::Nodelet);
+bool LlcpRos::openSerialPort(std::string portname, int baudrate) {
+
+  ROS_INFO_THROTTLE(1.0, "[%s]: Openning serial port.", ros::this_node::getName().c_str());
+
+  if (!serial_port_.connect(portname, baudrate)) {
+    ROS_ERROR_THROTTLE(1.0, "[%s]: Could not connect to the serial port", ros::this_node::getName().c_str());
+    /* is_connected_ = false; */
+    return false;
+  }
+
+  ROS_INFO_THROTTLE(1.0, "[%s]: Connected to sensor.", ros::this_node::getName().c_str());
+  /* is_connected_  = true; */
+  /* last_received_ = ros::Time::now(); */
+
+  return true;
+}
+
+//}
+
+/*  serialThread()//{ */
+
+void LlcpRos::serialThread(void) {
+
+  uint8_t  rx_buffer[SERIAL_BUFFER_SIZE];
+  uint16_t bytes_read;
+
+  while (!initialized_) {
+    ROS_INFO("[LlcpRos]: waiting for initialization");
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+
+  {
+    while (!serial_port_.checkConnected()) {
+      ROS_INFO("[LlcpRos]: serial thread waiting for serial port");
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+  }
+
+  ROS_INFO("[LlcpRos]: serial thread starting");
+
+  while (running_) {
+    bytes_read = serial_port_.readSerial(rx_buffer, SERIAL_BUFFER_SIZE);
+    if (bytes_read > 0) {
+      ROS_INFO("[LlcpRos]: read something...");
+
+      // feed all the incoming bytes into the MiniPIX interface
+      for (uint16_t i = 0; i < bytes_read; i++) {
+
+        LLCP_Message_t* message_in;
+
+        bool checksum_matched = false;
+
+        if (llcp_processChar(rx_buffer[i], &llcp_receiver, &message_in, &checksum_matched)) {
+          ROS_INFO_STREAM("[LlcpRos]: received message with id " << message_in->id);
+          ROS_INFO_STREAM("[LlcpRos]: checksum is: " << checksum_matched);
+        }
+      }
+    } else {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+  }
+}
+
+//}
+
+}  // namespace llcp_ros
+
+PLUGINLIB_EXPORT_CLASS(llcp_ros::LlcpRos, nodelet::Nodelet);
