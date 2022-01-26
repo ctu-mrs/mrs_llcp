@@ -6,6 +6,8 @@
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
 
+#include <mrs_msgs/Llcp.h>
+
 #include <llcp.h>
 #include <thread>
 
@@ -55,7 +57,7 @@ private:
   /* bool callbackNetgunSafe(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res); */
   /* bool callbackNetgunArm(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res); */
   /* bool callbackNetgunFire(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res); */
-  /* void callbackSendMessage(const mrs_msgs::LlcpRosConstPtr &msg); */
+  void callbackSendMessage(const mrs_msgs::LlcpConstPtr &msg);
   /* void callbackSendRawMessage(const mrs_msgs::SerialRawConstPtr &msg); */
   /* void callbackMagnet(const std_msgs::EmptyConstPtr &msg); */
 
@@ -69,7 +71,10 @@ private:
 
   bool running_     = true;
   bool initialized_ = false;
-  /* ros::Publisher range_publisher_A_; */
+
+  ros::Publisher  llcp_publisher_;
+  ros::Subscriber llcp_subscriber_;
+
   /* ros::Publisher range_publisher_B_; */
   /* ros::Publisher llcp_ros_publisher_; */
 
@@ -123,15 +128,15 @@ void LlcpRos::onInit() {
   /* std::string postfix_A = swap_garmins ? "_up" : ""; */
   /* std::string postfix_B = swap_garmins ? "" : "_up"; */
   /* range_publisher_A_    = nh_.advertise<sensor_msgs::Range>("range" + postfix_A, 1); */
-  /* range_publisher_B_    = nh_.advertise<sensor_msgs::Range>("range" + postfix_B, 1); */
   /* garmin_A_frame_       = uav_name_ + "/garmin" + postfix_A; */
   /* garmin_B_frame_       = uav_name_ + "/garmin" + postfix_B; */
 
   /* llcp_ros_publisher_ = nh_.advertise<mrs_msgs::LlcpRos>("baca_protocol_out", 1); */
 
   /* llcp_ros_subscriber = nh_.subscribe("baca_protocol_in", 10, &LlcpRos::callbackSendMessage, this, ros::TransportHints().tcpNoDelay()); */
+  llcp_publisher_ = nh_.advertise<mrs_msgs::Llcp>("llcp_out", 1);
 
-  /* raw_message_subscriber = nh_.subscribe("raw_in", 10, &LlcpRos::callbackSendRawMessage, this, ros::TransportHints().tcpNoDelay()); */
+  llcp_subscriber_ = nh_.subscribe("llcp_in", 10, &LlcpRos::callbackSendMessage, this, ros::TransportHints().tcpNoDelay());
 
   /* // Output loaded parameters to console for double checking */
   /* ROS_INFO_THROTTLE(1.0, "[%s] is up and running with the following parameters:", ros::this_node::getName().c_str()); */
@@ -199,19 +204,48 @@ void LlcpRos::serialThread(void) {
       // feed all the incoming bytes into the MiniPIX interface
       for (uint16_t i = 0; i < bytes_read; i++) {
 
-        LLCP_Message_t* message_in;
+        LLCP_Message_t *message_in;
 
         bool checksum_matched = false;
 
         if (llcp_processChar(rx_buffer[i], &llcp_receiver, &message_in, &checksum_matched)) {
           ROS_INFO_STREAM("[LlcpRos]: received message with id " << message_in->id);
           ROS_INFO_STREAM("[LlcpRos]: checksum is: " << checksum_matched);
+          mrs_msgs::Llcp msg_out;
+          msg_out.checksum_matched = checksum_matched;
+          msg_out.id               = message_in->id;
+          llcp_publisher_.publish(msg_out);
         }
       }
     } else {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
   }
+}
+
+//}
+
+/* callbackSendMessage() //{ */
+
+void LlcpRos::callbackSendMessage(const mrs_msgs::LlcpConstPtr &msg) {
+
+  if (!initialized_) {
+    ROS_INFO_STREAM_THROTTLE(1.0, "[LlcpRos]: Cannot send message, nodelet not initialized!");
+    return;
+  }
+
+  /* ROS_INFO_STREAM_THROTTLE(1.0, "SENDING: " << msg->id); */
+
+  uint8_t out_buffer[512];
+
+  // llcp is working with arrays, so we need to convert the payload from the ROS message into an array
+  std::vector<uint8_t> payload_vec  = msg->payload;
+  uint8_t              payload_size = payload_vec.size();
+  uint8_t              payload_arr[payload_size];
+  std::copy(payload_vec.begin(), payload_vec.end(), payload_arr);
+
+  uint16_t msg_len = llcp_prepareMessage((uint8_t *)&payload_arr, payload_size, out_buffer);
+  serial_port_.sendCharArray(out_buffer, msg_len);
 }
 
 //}

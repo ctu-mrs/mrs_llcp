@@ -10,13 +10,14 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   cmake_modules
   nodelet
+  mrs_msgs
   )
 
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES LlcpRos
-  CATKIN_DEPENDS roscpp
+  CATKIN_DEPENDS roscpp mrs_msgs
   )
 
 include_directories(
