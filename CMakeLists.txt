@@ -32,5 +32,5 @@ target_link_libraries(LlcpRos
   )
 
 add_library(llcp
-  src/llcp.c
+  src/llcp.cpp
 )

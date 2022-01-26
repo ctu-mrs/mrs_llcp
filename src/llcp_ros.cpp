@@ -212,8 +212,17 @@ void LlcpRos::serialThread(void) {
           ROS_INFO_STREAM("[LlcpRos]: received message with id " << message_in->id);
           ROS_INFO_STREAM("[LlcpRos]: checksum is: " << checksum_matched);
           mrs_msgs::Llcp msg_out;
+
           msg_out.checksum_matched = checksum_matched;
           msg_out.id               = message_in->id;
+
+          uint8_t payload_size = llcp_receiver.payload_size;
+
+          /* msg_out.payload.push_back(message_in->id); */
+
+          for (uint8_t i = 0; i < payload_size; i++) {
+            msg_out.payload.push_back(message_in->payload[i]);
+          }
           llcp_publisher_.publish(msg_out);
         }
       }
@@ -244,7 +253,7 @@ void LlcpRos::callbackSendMessage(const mrs_msgs::LlcpConstPtr &msg) {
   uint8_t              payload_arr[payload_size];
   std::copy(payload_vec.begin(), payload_vec.end(), payload_arr);
 
-  uint16_t msg_len = llcp_prepareMessage((uint8_t *)&payload_arr, payload_size, out_buffer);
+  uint16_t msg_len = llcp_prepareMessage((uint8_t *)&payload_arr, payload_size, out_buffer, msg->id);
   serial_port_.sendCharArray(out_buffer, msg_len);
 }
 

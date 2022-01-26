@@ -1,10 +1,6 @@
 #ifndef LLCP_H
 #define LLCP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
@@ -31,7 +27,7 @@ extern "C" {
 #define MAX_PAYLOAD_LEN 255
 
 #ifndef LLCP_CHECK_CHECKSUM
-#define LLCP_CHECK_CHECKSUM 0
+#define LLCP_CHECK_CHECKSUM 1
 #endif
 
 // | -------------------- END: USER CONFIG -------------------- |
@@ -142,10 +138,6 @@ void llcp_initialize(LLCP_Receiver_t* receiver);
 
 bool llcp_processChar(const uint8_t char_in, LLCP_Receiver_t* receiver, LLCP_Message_t** message, bool* checksum_matched);
 
-uint16_t llcp_prepareMessage(uint8_t* what, uint8_t len, uint8_t* buffer);
-
-#ifdef __cplusplus
-}
-#endif
+uint16_t llcp_prepareMessage(uint8_t* what, uint8_t len, uint8_t* buffer, uint8_t id);
 
 #endif  // LLCP_H
