@@ -20,7 +20,7 @@
 #endif
 
 #ifndef LLCP_DEBUG_PRINT
-#define LLCP_DEBUG_PRINT 0
+#define LLCP_DEBUG_PRINT 1
 #endif
 
 // max payload length in bytes, max 255

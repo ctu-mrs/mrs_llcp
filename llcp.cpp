@@ -163,6 +163,10 @@ bool llcp_processChar(const uint8_t char_in, LLCP_Receiver_t* receiver, LLCP_Mes
       break;
 #else
 
+#if LLCP_DEBUG_PRINT == 1
+      printf(" kocka Got checksum: %d, calculated checksum: %d\n", receiver->checksum, char_in);
+#endif
+
       *checksum_matched = receiver->checksum == char_in ? true : false;
 
 #if LLCP_CHECK_CHECKSUM == 1
@@ -202,7 +206,17 @@ bool llcp_processChar(const uint8_t char_in, LLCP_Receiver_t* receiver, LLCP_Mes
 
       uint8_t checksum = llcp_hex2bin(minibuf);
 
+#if LLCP_DEBUG_PRINT == 1
+      printf(" minbuf: %d, %d\n", minibuf[0], minibuf[1]);
+      printf(" pes Got checksum: %d, calculated checksum: %d\n", checksum, receiver->checksum);
+#endif
+
       *checksum_matched = receiver->checksum == checksum ? true : false;
+
+#if LLCP_DEBUG_PRINT == 1
+      printf(" pes Got checksum: %d, calculated checksum: %d\n", checksum, receiver->checksum);
+      printf(" checksum matched: %d\n", *checksum_matched);
+#endif
 
 #if LLCP_CHECK_CHECKSUM == 1
 
@@ -249,7 +263,7 @@ bool llcp_processChar(const uint8_t char_in, LLCP_Receiver_t* receiver, LLCP_Mes
 /*  llcp_prepareMessage() //{ */
 
 uint16_t llcp_prepareMessage(uint8_t* what, uint8_t len, uint8_t* buffer, uint8_t id) {
-
+//TODO: remove this +1 shit, and integrate the id somewhat more inteligently
   uint8_t payload_size = len + 1;
 
 #if LLCP_DEBUG_PRINT == 1
@@ -281,7 +295,7 @@ uint16_t llcp_prepareMessage(uint8_t* what, uint8_t len, uint8_t* buffer, uint8_
   checksum += buffer[it++];
 #endif
 
-  for (uint16_t i = 0; i < payload_size; i++) {
+  for (uint16_t i = 0; i < len; i++) {
 
 #if LLCP_COMM_HEXADECIMAL == 0
     buffer[it++] = what[i];
