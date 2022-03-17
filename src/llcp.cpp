@@ -157,6 +157,7 @@ bool llcp_processChar(const uint8_t char_in, LLCP_Receiver_t* receiver, LLCP_Mes
 
     case EXPECTING_CHECKSUM: {
 
+      printf("pes");
 #if LLCP_COMM_HEXADECIMAL == 1
       receiver->hexmem = char_in;
       receiver->state  = EXPECTING_CHECKSUM_2;
@@ -203,6 +204,9 @@ bool llcp_processChar(const uint8_t char_in, LLCP_Receiver_t* receiver, LLCP_Mes
       uint8_t checksum = llcp_hex2bin(minibuf);
 
       *checksum_matched = receiver->checksum == checksum ? true : false;
+
+      printf("got checksum = %d bytes\n", char_in);
+      printf("calculated checksum = %d bytes\n", receiver->checksum);
 
 #if LLCP_CHECK_CHECKSUM == 1
 

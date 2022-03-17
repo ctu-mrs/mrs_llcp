@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# Vim
+*.swp
+*.swo
+*.swn
+
+.gitman
+.gitman.old
+
+.ci/deploy_key_github
