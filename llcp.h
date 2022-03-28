@@ -119,7 +119,6 @@ typedef struct __attribute__((packed))
 
 typedef struct __attribute__((packed))
 {
-  uint8_t id;
   uint8_t payload[MAX_PAYLOAD_LEN];
   uint8_t checksum_matched;
 } LLCP_Message_t;
