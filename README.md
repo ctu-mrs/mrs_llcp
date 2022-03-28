@@ -5,7 +5,7 @@ LLCP itself is written in in plain C, to ensure compability with as many devices
 LLCP allows you to communicate with pre-defined messages, represented as C structs.
 Here is an example definition of messages used in LLCP:
 
-'''
+```c
 #define DATA_MSG_ID 52
 #define HEARTBEAT_MSG_ID 51
 
@@ -23,7 +23,7 @@ struct __attribute__((__packed__)) heartbeat_msg
   bool          is_running;
   uint16_t      messages_received;
 };
-'''
+```
 
 There are a few simple rules for the messages:
 * The structs has to have the packed attribute
@@ -35,22 +35,26 @@ On the side of ROS, we have a mrs_llcp_ros package, which will handle the serial
 To run LLCP on you low level device:
 
 * Include the library, use extern "C" if your code is in C++
-'''
+```c
 extern "C" {
 #include <llcp.h>
 }
-'''
+```
+
 * initialize the llcp_receiver and prepare a bufer for transmitting messages
-'''
+
+```c
 #define TX_BUFFER_LEN 255
 LLCP_Receiver_t llcp_receiver;
 uint8_t tx_buffer[TX_BUFFER_LEN];
-'''
+```
+
 * Sending a message:
   * define the message which you want to send
   * call llcp_prepareMessage() which will fill your TX buffer with the message
   * send out the contents of the buffer over the serial line
-'''
+
+```c
   data_msg my_msg; // this is our LLCP message
   uint16_t msg_len;
 
@@ -66,7 +70,7 @@ uint8_t tx_buffer[TX_BUFFER_LEN];
   for (int i = 0; i < msg_len; i++) {
     Serial.write(tx_buffer[i]);
   }
-'''
+```
 
 * Receiving a message:
   * receive bytes from the serial line byte by byte
@@ -74,7 +78,7 @@ uint8_t tx_buffer[TX_BUFFER_LEN];
   * the function will return true once a valid LLCP message has been received
   * the LLCP_Message_t pointer will point at the newly received message. The first byte of the message is the message ID, which is used to interpret the message and convert it into the according pre-defined struct.
    
-'''
+```c
   uint16_t msg_len;
   LLCP_Message_t* llcp_message_ptr;
   
@@ -103,5 +107,4 @@ uint8_t tx_buffer[TX_BUFFER_LEN];
       }
     }
   }
-'''
- mrs_llcp
+```
