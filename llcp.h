@@ -138,6 +138,6 @@ void llcp_initialize(LLCP_Receiver_t* receiver);
 
 bool llcp_processChar(const uint8_t char_in, LLCP_Receiver_t* receiver, LLCP_Message_t** message, bool* checksum_matched);
 
-uint16_t llcp_prepareMessage(uint8_t* what, uint8_t len, uint8_t* buffer, uint8_t id);
+uint16_t llcp_prepareMessage(uint8_t* what, uint8_t len, uint8_t* buffer);
 
 #endif  // LLCP_H

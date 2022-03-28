@@ -262,9 +262,9 @@ bool llcp_processChar(const uint8_t char_in, LLCP_Receiver_t* receiver, LLCP_Mes
 
 /*  llcp_prepareMessage() //{ */
 
-uint16_t llcp_prepareMessage(uint8_t* what, uint8_t len, uint8_t* buffer, uint8_t id) {
+uint16_t llcp_prepareMessage(uint8_t* what, uint8_t len, uint8_t* buffer) {
 //TODO: remove this +1 shit, and integrate the id somewhat more inteligently
-  uint8_t payload_size = len + 1;
+  uint8_t payload_size = len;
 
 #if LLCP_DEBUG_PRINT == 1
   printf("Preparing message, id = %d, size = %d bytes\n", what[0], payload_size);
@@ -281,16 +281,6 @@ uint16_t llcp_prepareMessage(uint8_t* what, uint8_t len, uint8_t* buffer, uint8_
   checksum += payload_size;
 #else
   llcp_bin2hex(payload_size, buffer + it);
-  checksum += buffer[it++];
-  checksum += buffer[it++];
-#endif
-
-
-#if LLCP_COMM_HEXADECIMAL == 0
-  buffer[it++] = id;
-  checksum += id;
-#else
-  llcp_bin2hex(id, buffer + it);
   checksum += buffer[it++];
   checksum += buffer[it++];
 #endif
