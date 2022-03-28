@@ -1,1 +1,107 @@
-# mrs_llcp
+# MRS LLCP
+
+LLCP (low level communication protocol) is a library which simplifies and standardizes communication with UART based low level devices.
+LLCP itself is written in in plain C, to ensure compability with as many devices as possible.
+LLCP allows you to communicate with pre-defined messages, represented as C structs.
+Here is an example definition of messages used in LLCP:
+
+'''
+#define DATA_MSG_ID 52
+#define HEARTBEAT_MSG_ID 51
+
+struct __attribute__((__packed__)) data_msg
+{
+  const uint8_t id = DATA_MSG_ID;
+  uint8_t       data1_uint8;
+  uint32_t      data2_uint32;
+  float         data3_float;
+};
+
+struct __attribute__((__packed__)) heartbeat_msg
+{
+  const uint8_t id = HEARTBEAT_MSG_ID;
+  bool          is_running;
+  uint16_t      messages_received;
+};
+'''
+
+There are a few simple rules for the messages:
+* The structs has to have the packed attribute
+* The first byte of the struct is the ID of the message, best practice is to #define the IDs and prefil them, as shown in the example messages
+* Make sure that the datatypes used in the struct are represented in the same way on both of the platforms you are using. For example, double is usually a 64-bit floating point number, but on some Arduino based board, double is implemented only as a 32-bit number.
+
+# using LLCP:
+On the side of ROS, we have a mrs_llcp_ros package, which will handle the serial port management for you.
+To run LLCP on you low level device:
+
+* Include the library, use extern "C" if your code is in C++
+'''
+extern "C" {
+#include <llcp.h>
+}
+'''
+* initialize the llcp_receiver and prepare a bufer for transmitting messages
+'''
+#define TX_BUFFER_LEN 255
+LLCP_Receiver_t llcp_receiver;
+uint8_t tx_buffer[TX_BUFFER_LEN];
+'''
+* Sending a message:
+  * define the message which you want to send
+  * call llcp_prepareMessage() which will fill your TX buffer with the message
+  * send out the contents of the buffer over the serial line
+'''
+  data_msg my_msg; // this is our LLCP message
+  uint16_t msg_len;
+
+  // fill the message with data
+  my_msg.data1_uint8 = my_data1_uint8;
+  my_msg.data2_uint32 = my_data2_uint32;
+  my_msg.data3_float = my_data3_float;
+
+  //llcp_prepareMessage will fill your TX buffer while returning the number of bytes written
+  msg_len = llcp_prepareMessage((uint8_t*)&my_msg, sizeof(my_msg), tx_buffer);
+
+  //send the message out over the serial line. The serial line implementation is based on the platform you are using, the example shown here is from an Arduino
+  for (int i = 0; i < msg_len; i++) {
+    Serial.write(tx_buffer[i]);
+  }
+'''
+
+* Receiving a message:
+  * receive bytes from the serial line byte by byte
+  * stick all of the incoming bytes into the llcp_processChar() function
+  * the function will return true once a valid LLCP message has been received
+  * the LLCP_Message_t pointer will point at the newly received message. The first byte of the message is the message ID, which is used to interpret the message and convert it into the according pre-defined struct.
+   
+'''
+  uint16_t msg_len;
+  LLCP_Message_t* llcp_message_ptr;
+  
+  // This is Arduino Serial line implementation, it will be different on other platforms
+  while (Serial.available() > 0) {
+    bool checksum_matched;
+    uint8_t char_in = Serial.read();
+
+    //individual chars are processed one by one by llcp, if a complete message is received, llcp_processChar() returns true
+    if (llcp_processChar(char_in, &llcp_receiver, &llcp_message_ptr, &checksum_matched)) {
+      if (checksum_matched) {
+        switch (llcp_message_ptr->id) {
+          case DATA_MSG_ID: {
+
+              data_msg *received_msg = (data_msg *)llcp_message_ptr;
+              /* Do stuff with the received data */
+              break;
+            }
+          case HEARTBEAT_MSG_ID: {
+
+              heartbeat_msg *received_msg = (heartbeat_msg *)llcp_message_ptr;
+              /* Do stuff with the received data */
+              break;
+            }
+        }
+      }
+    }
+  }
+'''
+ mrs_llcp
