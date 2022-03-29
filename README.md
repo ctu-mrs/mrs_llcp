@@ -1,6 +1,16 @@
 # MRS LLCP
 
 LLCP (low level communication protocol) is a library which simplifies and standardizes communication with UART based low level devices.
+See [mrs_llcp_ros](https://github.com/ctu-mrs/mrs_llcp_ros) - a ROS node which handles the serial port for you.
+See [llcp_example](https://github.com/ctu-mrs/llcp_example) to see an example ROS node (which communicates with mrs_llcp_ros) and an Arduino code where mrs_llcp is used.
+In general, this is a structure you should be adhering to:
+
+```mermaid
+flowchart LR
+A[Your ROS node] <-->|ROS messages| B[mrs_llcp_ros]
+B <-->|UART| C[Low level device]
+```
+
 LLCP itself is written in in plain C, to ensure compability with as many devices as possible.
 LLCP allows you to communicate with pre-defined messages, represented as C structs.
 Here is an example definition of messages used in LLCP:
@@ -27,11 +37,11 @@ struct __attribute__((__packed__)) heartbeat_msg
 
 There are a few simple rules for the messages:
 * The structs has to have the packed attribute
-* The first byte of the struct is the ID of the message, best practice is to #define the IDs and prefil them, as shown in the example messages
+* The first byte of the struct is always the ID of the message, best practice is to #define the IDs and prefil them, as shown in the example messages
 * Make sure that the datatypes used in the struct are represented in the same way on both of the platforms you are using. For example, double is usually a 64-bit floating point number, but on some Arduino based board, double is implemented only as a 32-bit number.
 
 # using LLCP:
-On the side of ROS, we have a mrs_llcp_ros package, which will handle the serial port management for you.
+On the side of ROS, we have the [mrs_llcp_ros](https://github.com/ctu-mrs/mrs_llcp_ros) package, which will handle the serial port management for you.
 To run LLCP on you low level device:
 
 * Include the library, use extern "C" if your code is in C++
