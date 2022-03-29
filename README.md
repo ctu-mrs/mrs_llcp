@@ -1,8 +1,8 @@
 # MRS LLCP
 
 LLCP (low level communication protocol) is a library which simplifies and standardizes communication with UART based low level devices.
-See [mrs_llcp_ros](https://github.com/ctu-mrs/mrs_llcp_ros) - a ROS node which handles the serial port for you.
-See [llcp_example](https://github.com/ctu-mrs/llcp_example) to see an example ROS node (which communicates with mrs_llcp_ros) and an Arduino code where mrs_llcp is used.
+* See [mrs_llcp_ros](https://github.com/ctu-mrs/mrs_llcp_ros) - a ROS node which handles the serial port for you.
+* See [llcp_example](https://github.com/ctu-mrs/llcp_example) to see an example ROS node (which communicates with mrs_llcp_ros) and an Arduino code where mrs_llcp is used.
 In general, this is a structure you should be adhering to:
 
 ```mermaid
