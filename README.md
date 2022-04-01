@@ -70,6 +70,7 @@ uint8_t tx_buffer[TX_BUFFER_LEN];
   uint16_t msg_len;
 
   // fill the message with data
+  my_msg.id = DATA_MSG_ID;
   my_msg.data1_uint8 = my_data1_uint8;
   my_msg.data2_uint32 = my_data2_uint32;
   my_msg.data3_float = my_data3_float;
