@@ -41,6 +41,34 @@ There are a few simple rules for the messages:
 * The first byte of the struct is always the ID of the message, best practice is to #define the IDs and prefil them, as shown in the example messages
 * Make sure that the datatypes used in the struct are represented in the same way on both of the platforms you are using. For example, double is usually a 64-bit floating point number, but on some Arduino based board, double is implemented only as a 32-bit number.
 
+# Disclaimer - using \_\_attribute\_\_((\_\_packed\_\_)):
+MRS_LLCP messages are all defined with attribute __packed__, which specifies that there should be no padding in the struct.
+This is necesary for correct functionlaity of MRS_LLCP.
+There is however a risk of undefined behaviour, if you use __packed__ structs incorrectly.
+See this example:
+
+```c
+struct __attribute__((__packed__)) msg
+{
+  uint8_t id;
+  int     data;
+};
+
+
+struct msg test_msg;
+test_msg.data = 4;
+int *test = &test_msg.data;
+```
+
+On the last line of this example, we assign a pointer to __packed__ struct field, which yields a pointer which is no longer __packed__, and dereferencing such pointer may result in undefined behaviour.
+Compiler should throw out a warning if you try to do this:
+```
+Core/Src/main.c:84:12: warning: taking address of packed member of 'struct msg' may result in an unaligned pointer value [-Waddress-of-packed-member]
+   84 |   int *test = &test_msg.data;
+      |            ^~~~~~~~~~~~~~
+```
+So avoid doing this when working with __packed__ structs.
+
 # using LLCP:
 On the side of ROS, we have the [mrs_llcp_ros](https://github.com/ctu-mrs/mrs_llcp_ros) package, which will handle the serial port management for you.
 To run LLCP on you low level device:
