@@ -61,13 +61,13 @@ int *test = &test_msg.data;
 ```
 
 On the last line of this example, we assign a pointer to __packed__ struct field, which yields a pointer which is no longer __packed__, and dereferencing such pointer may result in undefined behaviour.
-Compiler should throw out a warning if you try to do this:
+The compiler will only throw a warning if it's configured as such and if it's a recent version of a reasonably smart compiler:
 ```
 Core/Src/main.c:84:12: warning: taking address of packed member of 'struct msg' may result in an unaligned pointer value [-Waddress-of-packed-member]
    84 |   int *test = &test_msg.data;
       |            ^~~~~~~~~~~~~~
 ```
-So avoid doing this when working with __packed__ structs.
+Also, note that the __attribute(packed)__ is a gcc extension that is only supported by gcc and clang AFAWK, so it will not work at all with e.g. Borland or MSVC.
 
 # using LLCP:
 On the side of ROS, we have the [mrs_llcp_ros](https://github.com/ctu-mrs/mrs_llcp_ros) package, which will handle the serial port management for you.
